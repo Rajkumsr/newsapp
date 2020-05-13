@@ -1,0 +1,156 @@
+
+-----------------------------------------------------------------------------
+
+Environment.ts
+
+// This file can be replaced during build by using the `fileReplacements` array.
+// `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
+// The list of file replacements can be found in `angular.json`.
+
+export const environment = {
+  production: false,
+  apiUrl: 'http://newsapi.org/v2',
+  apiKey: '03c4622046d54286a95ad879ce1c279d'
+     
+};
+
+/*
+ * For easier debugging in development mode, you can import the following file
+ * to ignore zone related error stack frames such as `zone.run`, `zoneDelegate.invokeTask`.
+ *
+ * This import should be commented out in production mode because it will have a negative impact
+ * on performance if an error is thrown.
+ */
+// import 'zone.js/dist/zone-error';  // Included with Angular CLI.
+
+----------------------------------------------------------------------------------------------
+
+app.module.ts
+
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { RouteReuseStrategy } from '@angular/router';
+
+import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
+import { SplashScreen } from '@ionic-native/splash-screen/ngx';
+import { StatusBar } from '@ionic-native/status-bar/ngx';
+
+import { AppComponent } from './app.component';
+import { AppRoutingModule } from './app-routing.module';
+import { HttpClientModule } from '@angular/common/http';
+
+@NgModule({
+  declarations: [AppComponent],
+  entryComponents: [],
+  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule,HttpClientModule],
+  providers: [
+    StatusBar,
+    SplashScreen,
+    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy }
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule {}
+----------------------------------------------------------------------------------------
+
+home.page.ts
+
+import { Component } from '@angular/core';
+import {  NewsDataServicesService } from '../news-data-services.service';
+
+@Component({
+  selector: 'app-home',
+  templateUrl: 'home.page.html',
+  styleUrls: ['home.page.scss'],
+})
+export class HomePage {
+
+ articles: any
+
+  constructor(private newsservice:NewsDataServicesService) {
+    this.loadNews();
+  }
+
+    loadNews(){
+
+        this.newsservice.getNews("top-headlines?sources=techcrunch").subscribe( news => {
+    
+        this.articles = news['articles'];
+        console.log(this.articles);
+    
+          })
+
+  }
+
+  doRefresh(event) {
+      console.log('Begin async operation',event);
+
+        this.newsservice.getNews("top-headlines?sources=techcrunch").subscribe( news => {
+        this.articles = news['articles'];
+        console.log(this.articles);
+         })
+         
+      event.target.complete();
+  }
+}
+
+--------------------------------------------------------------------------------------------------------
+
+news-data-services.service.ts
+
+import { Injectable } from '@angular/core';
+import { environment } from '../environments/environment';
+import { HttpClient } from '@angular/common/http';
+
+const API_URL = environment.apiUrl;
+const API_KEY = environment.apiKey;
+
+@Injectable({
+  providedIn: 'root'
+})
+export class NewsDataServicesService {
+
+  constructor(private httpclient: HttpClient) { }
+
+getNews(url)
+{
+  return this.httpclient.get(`${API_URL}/${url}&apiKey=${API_KEY}`);
+}
+
+}
+
+--------------------------------------------------------------------------------------------
+
+homepage.html
+
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>
+      News
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Pull to refresh"
+      refreshingSpinner="circles"
+      refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
+
+
+<ion-content [fullscreen]="true">
+  <ion-card *ngFor="let article of articles"> 
+    <ion-img [src]="article.urlToImage"></ion-img>
+      <ion-card-header>
+        <ion-card-subtitle>{{article.publishedAt | date }}</ion-card-subtitle>
+        <ion-card-title>{{article.title}}</ion-card-title>
+      </ion-card-header>
+
+      <ion-card-content>{{article.description}}</ion-card-content>
+
+  </ion-card>
+</ion-content>
